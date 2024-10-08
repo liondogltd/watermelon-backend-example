@@ -8,18 +8,20 @@ from data import users, notifications
 
 app = Flask(__name__)
 
-
+# get auth token from headers
 def get_auth_token(request):
     auth_header = request.headers['Authorization']
     auth_token = auth_header.split(' ')[1]
     return auth_token
 
+# get the last pulled at time from GET parameters
 def get_last_pulled_at(request):
     try:
         return int(request.args.get('last_pulled_at', '0'))
     except:
         return 0
 
+# get the schema version from GET parameters
 def get_schema_version(request):
     try:
         return int(request.args.get('get_schema_version', '1'))
@@ -36,8 +38,10 @@ def pull(request):
     print(f'Last pulled at: {last_pulled_at}')
     print(f'Schema version: {schema_version}')
 
+    # get the user from the JWT (decoding the JWT and get user data)
     my_user = [user for user in users if user.get('access_token') == auth_token][0]
 
+    # query the database for items created after the 'last pulled at' time
     notifications_created = []
     my_ids = [my_user.get('id'), *my_user.get('groups')]
     for notification in notifications:
@@ -60,6 +64,8 @@ def pull(request):
         }
 
     else:
+        # query the database for items updated after the 'last pulled at' time
+
         # fake an update
         notification_to_update = notifications[2]
         notification_to_update['title'] = "Archery: one space available!"
@@ -68,12 +74,16 @@ def pull(request):
         if notification.get('to') in my_ids:
             notifications_updated.append(notification_to_update)
 
+        # query the database for items deleted after the 'last pulled at' time
+
+        # fake a delete
         notifications_deleted = []
         notification_to_delete = notifications[3]
+
+        # we only need the ids of items deleted - would need to store them in the database (with a timestamp) if records are actually deleted
         if notification_to_delete.get('to') in my_ids:
             notifications_deleted = [notification_to_delete.get('id')]
 
-    
         response = {
             "changes": {
                 "notifications": {
